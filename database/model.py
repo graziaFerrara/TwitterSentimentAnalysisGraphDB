@@ -18,8 +18,9 @@ class Tweet(StructuredNode):
     likes = IntegerProperty(required=True)
     shares = IntegerProperty(required=True)
     user = RelationshipTo('User', 'POSTED_BY')
-    trend = RelationshipTo('Trend', 'RELATED_TO')
-    comments = RelationshipTo('Tweet', 'COMMENTED_ON')
+    trends = RelationshipTo('Trend', 'RELATED_TO')
+    comments_to = RelationshipTo('Tweet', 'COMMENTED_ON')
+    comments_from = RelationshipFrom('Tweet', 'COMMENTED_ON')
 
 class User(StructuredNode):
     id_mongo = StringProperty(unique_index=True, required=True)
