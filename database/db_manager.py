@@ -25,9 +25,6 @@ class DBManager:
         query = query[:-2] + ")"
         neomodel.db.cypher_query(query)
 
-    def delete_all(self):
-        neomodel.db.cypher_query("MATCH (n) DETACH DELETE n")
-
     def get_all_nodes(self):
         return neomodel.db.cypher_query("MATCH (n) RETURN n")
     
@@ -55,3 +52,11 @@ class DBManager:
     def delete_relationship_by_nodes(self, id_node1, id_node2, relationship_type):
         neomodel.db.cypher_query(f"MATCH (n)-[r:{relationship_type}]-(m) WHERE ID(n) = {id_node1} AND ID(m) = {id_node2} DELETE r")
 
+    def delete_all_relationships_of_type(self, relationship_type):
+        neomodel.db.cypher_query(f"MATCH ()-[r:{relationship_type}]->() DELETE r")
+
+    def delete_all_nodes_of_type(self, node_type):
+        neomodel.db.cypher_query(f"MATCH (n:{node_type}) DETACH DELETE n")
+
+    def delete_all(self):
+        neomodel.db.cypher_query("MATCH (n) DETACH DELETE n")
