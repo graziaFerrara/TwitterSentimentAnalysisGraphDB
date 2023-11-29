@@ -51,3 +51,7 @@ class DBManager:
     
     def get_node_by_property(self, node_type, property_name, property_value):
         return neomodel.db.cypher_query(f"MATCH (n:{node_type}) WHERE n.{property_name} = '{property_value}' RETURN n")
+
+    def delete_relationship_by_nodes(self, id_node1, id_node2, relationship_type):
+        neomodel.db.cypher_query(f"MATCH (n)-[r:{relationship_type}]-(m) WHERE ID(n) = {id_node1} AND ID(m) = {id_node2} DELETE r")
+

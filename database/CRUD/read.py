@@ -57,7 +57,7 @@ def get_user_by_tweet(tweet):
         return None
     return tweet.user.all()
 
-def get_commets_by_tweet(tweet):
+def get_comments_by_tweet(tweet):
     if tweet is None:
         return None
     return tweet.comments_from.all()
@@ -109,8 +109,8 @@ if __name__ == '__main__':
 
     # 10. GET COMMENTS BY TWEET GIVEN TWEET MONGO ID
     print("GET COMMENTS BY TWEET GIVEN TWEET MONGO ID")
-    print(get_commets_by_tweet(get_tweet_by_mongo_id("6542702c7e0338fef46ed406")))
+    print(get_comments_by_tweet(get_tweet_by_mongo_id("6542702c7e0338fef46ed406")))
 
     # 11. GET COMMENTS BY TWEET GIVEN TWEET URL
     print("GET COMMENTS BY TWEET GIVEN TWEET URL")
-    print(get_commets_by_tweet(get_tweet_by_url("https://twitter.com/username/status/1713864866136821794/analytics")))
+    print(get_comments_by_tweet(get_tweet_by_url("https://twitter.com/username/status/1713864866136821794/analytics")))
