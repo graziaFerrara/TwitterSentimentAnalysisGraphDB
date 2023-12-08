@@ -247,31 +247,55 @@ if __name__ == '__main__':
     
     db_manager = DBManager(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
     
+    user = get_user_by_username("@Ex_puppypaws")
+    trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
+    
+    operations = [
+        {
+            "name": "AVERAGE SENTIMENT PER TREND",
+            "function": operation1, 
+            "requires": []
+        },
+        {
+            "name": "SENTIMENT PERCENTAGES",
+            "function": operation2,
+            "requires": []
+        },
+        {
+            "name": "TREND DIFFUSION DEGREE",
+            "function": operation3,
+            "requires": [trend]
+        },
+        {
+            "name": "USER COHERENCE SCORE",
+            "function": operation4,
+            "requires": []
+        },
+        {
+            "name": "USER'S SENTIMENT PERCENTAGES",
+            "function": operation5,
+            "requires": [user]
+        },
+        {
+            "name": "ENGAGEMENT METRICS COMPUTATION",
+            "function": operation6,
+            "requires": []
+        },
+        {
+            "name": "DISCUSSIONS' DETECTION",
+            "function": operation7,
+            "requires": [trend]
+        }
+    ]
+    
     if not PERFORMANCES:
 
-        print("Operation 1: ")
-        print(json.dumps(operation1(), indent=4))
-
-        print("Operation 2: ")
-        print(json.dumps(operation2(), indent=4))
-
-        print("Operation 3: ")
-        trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
-        print(json.dumps(operation3(trend), indent=4))
-
-        print("Operation 4: ")
-        print(json.dumps(operation4(), indent=4))
-
-        print("Operation 5: ")
-        user = get_user_by_username("@Ex_puppypaws")
-        print(json.dumps(operation5(user), indent=4))
-
-        print("Operation 6: ")
-        print(json.dumps(operation6(), indent=4))
-
-        print("Operation 7: ")
-        trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
-        print(json.dumps(operation7(trend), indent=4))
+        for operation in operations:
+            print(operation["name"])
+            if len(operation["requires"]) == 0:
+                print(json.dumps(operation["function"](), indent=4))
+            else:
+                print(json.dumps(operation["function"](*operation["requires"]), indent=4))
     
     else:
         
@@ -281,43 +305,23 @@ if __name__ == '__main__':
             
             print("Test " + str(n + 1))
             
-            start = time.time()
-            operation1()
-            end = time.time()
-            perf = perf._append({'operation': 'AVERAGE SENTIMENT PER TREND', 'executionTime': end - start}, ignore_index=True)
-            
-            start = time.time()
-            operation2()
-            end = time.time()
-            perf = perf._append({'operation': 'SENTIMENT PERCENTAGES', 'executionTime': end - start}, ignore_index=True)
-            
-            trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
-            start = time.time()
-            operation3(trend)
-            end = time.time()
-            perf = perf._append({'operation': 'TREND DIFFUSION DEGREE', 'executionTime': end - start}, ignore_index=True)
-            
-            start = time.time()
-            operation4()
-            end = time.time()
-            perf = perf._append({'operation': 'USER COHERENCE SCORE', 'executionTime': end - start}, ignore_index=True)
-            
-            user = get_user_by_username("@Ex_puppypaws")
-            start = time.time()
-            operation5(user)
-            end = time.time()
-            perf = perf._append({'operation': "USER'S SENTIMENT PERCENTAGES", 'executionTime': end - start}, ignore_index=True)
-            
-            start = time.time()
-            operation6()
-            end = time.time()
-            perf = perf._append({'operation': 'ENGAGEMENT METRICS COMPUTATION', 'executionTime': end - start}, ignore_index=True)
-            
-            trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
-            start = time.time()
-            operation7(trend)
-            end = time.time()
-            perf = perf._append({'operation': "DISCUSSIONS' DETECTION", 'executionTime': end - start}, ignore_index=True)
+            for operation in operations:
+                    
+                print(operation["name"])
+                
+                start = time.time()
+                
+                if len(operation["requires"]) == 0:
+                    operation["function"]()
+                else:
+                    operation["function"](*operation["requires"])
+                    
+                end = time.time()
+                
+                perf = perf._append({
+                    'operation': operation["name"],
+                    'executionTime': end - start
+                }, ignore_index=True)
             
         # compute the mean of the execution times for each operation
         operations = perf['operation'].unique()
@@ -325,5 +329,8 @@ if __name__ == '__main__':
         for operation in operations:
             mean = perf[perf['operation'] == operation]['executionTime'].mean()
             # replace the rows with the mean
-            mean_df = mean_df._append({'operation': operation, 'executionTime': mean}, ignore_index=True)
+            mean_df = mean_df._append({
+                'operation': operation,
+                'executionTime': mean
+            }, ignore_index=True)
         mean_df.to_csv('performances/complex_queries_performances_GDB.csv', index=False)
