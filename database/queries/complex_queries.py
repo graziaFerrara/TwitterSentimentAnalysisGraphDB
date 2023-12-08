@@ -6,6 +6,9 @@ sys.path.append(parent_dir)
 from database.db_manager import DBManager
 from database.CRUD.read import *
 from database.model import Trend, Tweet, User
+import pandas as pd
+import time
+import json
 
 def operation1():
     """
@@ -13,6 +16,7 @@ def operation1():
     For each trend, select all the tweets associated with the trend and show the
     sentiment obtained as the average of the sentiment of the selected tweets.
     """
+    result = []
     # get all the trends
     trends = Trend.nodes.all()
     for trend in trends:
@@ -23,7 +27,8 @@ def operation1():
         for tweet in tweets:
             sum += tweet.sentiment
         avg = sum / len(tweets)
-        print("Trend: " + trend.name + " - Average sentiment: " + str(float("{:.4f}".format(avg))))
+        result.append({"name": trend.name, "location": trend.location, "date": trend.date, "sentiment": avg})
+    return result
 
 def operation2():
     """
@@ -31,6 +36,7 @@ def operation2():
     For each trend, select all the tweets that belong to it and for each value of sentiment that the tweet can assume,
     print the percentage of them that obtained that particular sentiment.
     """
+    result = []
     # get all the trends
     trends = Trend.nodes.all()
     for trend in trends:
@@ -50,7 +56,8 @@ def operation2():
         positive = int (positive / len(tweets) * 100)
         negative = int (negative / len(tweets) * 100)
         neutral = int (neutral / len(tweets) * 100)
-        print("Trend: " + trend.name + " - Positive: " + str(positive) + " - Negative: " + str(negative) + " - Neutral: " + str(neutral))
+        result.append({"name": trend.name, "location": trend.location, "date": trend.date, "positive": positive, "negative": negative, "neutral": neutral})
+    return result
 
 def operation3(trend):
     """
@@ -59,6 +66,7 @@ def operation3(trend):
     followers identify how many people have been reached by the trend, as the sum of the number of followers (which is 
     clearly an approximation)
     """
+    result = []
     # get all the tweets associated with the trend which have not the relationship "COMMENTED_ON"
     tweets = trend.tweets.all()
     
@@ -82,8 +90,8 @@ def operation3(trend):
             
     followers = sum(users.values())
             
-    print("Trend: " + trend.name + " - Diffusion degree: " + str(followers))
-            
+    result.append({"name": trend.name, "location": trend.location, "date": trend.date, "followers": followers})
+    return result
 
 def operation4():
     """
@@ -91,6 +99,8 @@ def operation4():
     For each user, group the tweets he wrote by the trends in the trends array and, for each cluster, assign the user a coherence score, 
     average the scores obtained 
     """
+    
+    result = []
 
     user_score = {}
 
@@ -138,13 +148,16 @@ def operation4():
     
     for user in user_score:
         user_score[user] = (user_score[user] - min_score) / (max_score - min_score) * 100
-        print("User: " + user + " - Coherence score: " + str(float("{:.2f}".format(user_score[user]))))
+        result.append({"username": user, "score": user_score[user]})
+        
+    return result
 
 def operation5(user):
     """
     5. USER'S SENTIMENT PERCENTAGES
     Given a user, take the tweets he wrote and calculate the percentages of positive, negative and neutral sentiment tweets.
     """
+    result = []
     # get all the tweets written by the user
     tweets = user.tweets.all()
     # compute the percentages
@@ -161,13 +174,15 @@ def operation5(user):
     positive = positive / len(tweets) * 100
     negative = negative / len(tweets) * 100
     neutral = neutral / len(tweets) * 100
-    print("User: " + user.username + " - Positive: " + str(positive) + " - Negative: " + str(negative) + " - Neutral: " + str(neutral))
+    result.append({"username": user.username, "positive": positive, "negative": negative, "neutral": neutral})
+    return result
 
 def operation6():
     """
     6. ENGAGEMENT METRICS COMPUTATION
     For each trend, compute the average number of likes, shares and retweets that its posts have received
     """
+    result = []
     # get all the trends
     trends = Trend.nodes.all()
     for trend in trends:
@@ -184,14 +199,18 @@ def operation6():
         avg_likes = sum_likes / len(tweets)
         avg_shares = sum_shares / len(tweets)
         avg_retweets = sum_retweets / len(tweets)
-        print("Trend: " + trend.name + " - Average likes: " + str(avg_likes) + " - Average shares: " + str(avg_shares) + " - Average retweets: " + str(avg_retweets))
-
+     
+        result.append({"name": trend.name, "location": trend.location, "date": trend.date, "likes": avg_likes, "shares": avg_shares, "retweets": avg_retweets})
+        
+    return result
+     
 def operation7(trend):
     """
     7. DISCUSSIONS' DETECTION   
     Given a trend, for each tweet associated with it, check if its comments have given rise to a discussion by 
     identifying any discordant sentiments
     """
+    result = []
     tweets = trend.tweets.all()
     for tweet in tweets:
         if tweet.sentiment > 0.2:
@@ -210,11 +229,15 @@ def operation7(trend):
             else:
                 comment_sentiment = "neutral"
             if comment_sentiment != sentiment:
-                print("Tweet: " + tweet.text + " - Discussion: True")
+                result.append({"tweet": tweet.text, "discussion": True})
                 found = True
                 break
         if not found:
-            print("Tweet: " + tweet.text + " - Discussion: False")
+            result.append({"tweet": tweet.text, "discussion": False})
+    return result
+            
+PERFORMANCES = False
+NUM_TESTS = 10
 
 if __name__ == '__main__':
     # take port, name of the db, username and password from the command line
@@ -223,28 +246,84 @@ if __name__ == '__main__':
         sys.exit(1)
     
     db_manager = DBManager(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-
-    print("Operation 1: ")
-    operation1()
-
-    print("Operation 2: ")
-    operation2()
-
-    print("Operation 3: ")
-    trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
-    operation3(trend)
-
-    print("Operation 4: ")
-    operation4()
-
-    print("Operation 5: ")
-    user = get_user_by_username("@Ex_puppypaws")
-    operation5(user)
-
-    print("Operation 6: ")
-    operation6()
-
-    print("Operation 7: ")
-    trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
-    operation7(trend)
     
+    if not PERFORMANCES:
+
+        print("Operation 1: ")
+        print(json.dumps(operation1(), indent=4))
+
+        print("Operation 2: ")
+        print(json.dumps(operation2(), indent=4))
+
+        print("Operation 3: ")
+        trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
+        print(json.dumps(operation3(trend), indent=4))
+
+        print("Operation 4: ")
+        print(json.dumps(operation4(), indent=4))
+
+        print("Operation 5: ")
+        user = get_user_by_username("@Ex_puppypaws")
+        print(json.dumps(operation5(user), indent=4))
+
+        print("Operation 6: ")
+        print(json.dumps(operation6(), indent=4))
+
+        print("Operation 7: ")
+        trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
+        print(json.dumps(operation7(trend), indent=4))
+    
+    else:
+        
+        perf = pd.DataFrame(columns=['operation', 'executionTime'])
+        
+        for n in range(NUM_TESTS):
+            
+            print("Test " + str(n + 1))
+            
+            start = time.time()
+            operation1()
+            end = time.time()
+            perf = perf._append({'operation': 'AVERAGE SENTIMENT PER TREND', 'executionTime': end - start}, ignore_index=True)
+            
+            start = time.time()
+            operation2()
+            end = time.time()
+            perf = perf._append({'operation': 'SENTIMENT PERCENTAGES', 'executionTime': end - start}, ignore_index=True)
+            
+            trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
+            start = time.time()
+            operation3(trend)
+            end = time.time()
+            perf = perf._append({'operation': 'TREND DIFFUSION DEGREE', 'executionTime': end - start}, ignore_index=True)
+            
+            start = time.time()
+            operation4()
+            end = time.time()
+            perf = perf._append({'operation': 'USER COHERENCE SCORE', 'executionTime': end - start}, ignore_index=True)
+            
+            user = get_user_by_username("@Ex_puppypaws")
+            start = time.time()
+            operation5(user)
+            end = time.time()
+            perf = perf._append({'operation': "USER'S SENTIMENT PERCENTAGES", 'executionTime': end - start}, ignore_index=True)
+            
+            start = time.time()
+            operation6()
+            end = time.time()
+            perf = perf._append({'operation': 'ENGAGEMENT METRICS COMPUTATION', 'executionTime': end - start}, ignore_index=True)
+            
+            trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
+            start = time.time()
+            operation7(trend)
+            end = time.time()
+            perf = perf._append({'operation': "DISCUSSIONS' DETECTION", 'executionTime': end - start}, ignore_index=True)
+            
+        # compute the mean of the execution times for each operation
+        operations = perf['operation'].unique()
+        mean_df = pd.DataFrame(columns=['operation', 'executionTime'])
+        for operation in operations:
+            mean = perf[perf['operation'] == operation]['executionTime'].mean()
+            # replace the rows with the mean
+            mean_df = mean_df._append({'operation': operation, 'executionTime': mean}, ignore_index=True)
+        mean_df.to_csv('performances/complex_queries_performances_GDB.csv', index=False)
