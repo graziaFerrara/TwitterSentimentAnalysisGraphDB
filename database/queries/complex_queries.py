@@ -23,7 +23,7 @@ def operation1():
         for tweet in tweets:
             sum += tweet.sentiment
         avg = sum / len(tweets)
-        print("Trend: " + trend.name + " - Average sentiment: " + str(float("{:.2f}".format(avg))))
+        print("Trend: " + trend.name + " - Average sentiment: " + str(float("{:.4f}".format(avg))))
 
 def operation2():
     """
@@ -59,19 +59,31 @@ def operation3(trend):
     followers identify how many people have been reached by the trend, as the sum of the number of followers (which is 
     clearly an approximation)
     """
-    # get all the tweets associated with the trend
+    # get all the tweets associated with the trend which have not the relationship "COMMENTED_ON"
     tweets = trend.tweets.all()
-    # get all the users who wrote the tweets
-    users = []
+    
+    all_tweets = []
+    
+    # also get the comments of the tweets
     for tweet in tweets:
-        user = tweet.user.single()
-        if user not in users:
-            users.append(user)
-    # compute the number of followers of each user
+        all_tweets.append(tweet)
+        comments = tweet.comments_from.all()
+        for comment in comments:
+            all_tweets.append(comment)
+            
+    tweets = all_tweets
+    
+    # get all the users who wrote the tweets
+    users = {}
     followers = 0
-    for user in users:
-        followers += user.followers
-    print("Trend: " + trend.name + " - Followers: " + str(followers))
+    for tweet in tweets:
+        for user in tweet.user.all():
+            users[user.id_mongo] = user.followers
+            
+    followers = sum(users.values())
+            
+    print("Trend: " + trend.name + " - Diffusion degree: " + str(followers))
+            
 
 def operation4():
     """
@@ -93,36 +105,37 @@ def operation4():
             continue
 
         tweets = user.tweets.all()
-
-        # group the tweets by trend
-        trends = []
+        
+        tweets_by_trend = {}
+        
         for tweet in tweets:
             for trend in tweet.trends.all():
-                if trend not in trends:
-                    trends.append(trend)
+                if trend.name not in tweets_by_trend:
+                    tweets_by_trend[trend.name] = []
+                tweets_by_trend[trend.name].append(tweet)
+                
         # compute the coherence score for each cluster
-        scores = []
-        for trend in trends:
-            # get all the tweets associated with the trend
-            trend_tweets = trend.tweets.all()
-            # compute the coherence score
+        scores = {}
+        for trend in tweets_by_trend:
+            tweets = tweets_by_trend[trend]
+            # compute the average sentiment
             sum = 0
-            for tweet in trend_tweets:
+            for tweet in tweets:
                 sum += tweet.sentiment
-            avg = sum / len(trend_tweets)
-            scores.append(avg)
+            avg = sum / len(tweets) if len(tweets) > 0 else 0
+            scores[trend] = avg
+           
         # compute the average of the scores
         sum = 0
-        for score in scores:
+        for score in scores.values():
             sum += score
-        if len(scores) == 0:
-            continue
-        avg = sum / len(scores)
-        user_score[user.username] = avg
+        avg = sum / len(scores) if len(scores) > 0 else 0
+        user_score[user.username] = avg  
 
     # normalize scores between 0 and 100
     min_score = min(user_score.values())
     max_score = max(user_score.values())
+    
     for user in user_score:
         user_score[user] = (user_score[user] - min_score) / (max_score - min_score) * 100
         print("User: " + user + " - Coherence score: " + str(float("{:.2f}".format(user_score[user]))))
@@ -145,9 +158,9 @@ def operation5(user):
             negative += 1
         else:
             neutral += 1
-    positive = positive / len(tweets)
-    negative = negative / len(tweets)
-    neutral = neutral / len(tweets)
+    positive = positive / len(tweets) * 100
+    negative = negative / len(tweets) * 100
+    neutral = neutral / len(tweets) * 100
     print("User: " + user.username + " - Positive: " + str(positive) + " - Negative: " + str(negative) + " - Neutral: " + str(neutral))
 
 def operation6():
@@ -173,46 +186,35 @@ def operation6():
         avg_retweets = sum_retweets / len(tweets)
         print("Trend: " + trend.name + " - Average likes: " + str(avg_likes) + " - Average shares: " + str(avg_shares) + " - Average retweets: " + str(avg_retweets))
 
-def operation7():
+def operation7(trend):
     """
     7. DISCUSSIONS' DETECTION   
     Given a trend, for each tweet associated with it, check if its comments have given rise to a discussion by 
     identifying any discordant sentiments
     """
-    # get all the trends
-    trends = Trend.nodes.all()
-    for trend in trends:
-        # get all the tweets associated with the trend
-        tweets = trend.tweets.all()
-        for tweet in tweets:
-            # get the sentiment of the tweet
-            if tweet.sentiment > 0.2:
-                sentiment = "positive"
-            elif tweet.sentiment < -0.2:
-                sentiment = "negative"
+    tweets = trend.tweets.all()
+    for tweet in tweets:
+        if tweet.sentiment > 0.2:
+            sentiment = "positive"
+        elif tweet.sentiment < -0.2:
+            sentiment = "negative"
+        else:
+            sentiment = "neutral"
+        # get all the comments of the tweet
+        found = False
+        for comment in tweet.comments_from.all():
+            if comment.sentiment > 0.2:
+                comment_sentiment = "positive"
+            elif comment.sentiment < -0.2:
+                comment_sentiment = "negative"
             else:
-                sentiment = "neutral"
-            # get all the comments associated with the tweet
-            comments = tweet.comments_to.all()
-            # check if the comments have given rise to a discussion
-            discussion = False
-            for comment in comments:
-                if comment.sentiment > -0.2 and sentiment == "negative":
-                    discussion = True
-                    break
-                elif comment.sentiment < 0.2 and sentiment == "positive":
-                    discussion = True
-                    break
-                elif comment.sentiment > 0.2 and sentiment == "neutral":
-                    discussion = True
-                    break
-                elif comment.sentiment < -0.2 and sentiment == "neutral":
-                    discussion = True
-                    break
-            if discussion:
+                comment_sentiment = "neutral"
+            if comment_sentiment != sentiment:
                 print("Tweet: " + tweet.text + " - Discussion: True")
-            else:
-                print("Tweet: " + tweet.text + " - Discussion: False")
+                found = True
+                break
+        if not found:
+            print("Tweet: " + tweet.text + " - Discussion: False")
 
 if __name__ == '__main__':
     # take port, name of the db, username and password from the command line
@@ -243,5 +245,6 @@ if __name__ == '__main__':
     operation6()
 
     print("Operation 7: ")
-    operation7()
+    trend = get_trend_by_name_location_date("#Halloween", "Italy", "2023-11-01T16:29:31.292726")
+    operation7(trend)
     
