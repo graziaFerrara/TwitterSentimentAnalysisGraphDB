@@ -24,8 +24,14 @@ class Tweet(StructuredNode):
 
 class User(StructuredNode):
     id_mongo = StringProperty(unique_index=True, required=True)
+    profile_name = StringProperty()
     username = StringProperty(unique_index=True, required=True)
     followers = IntegerProperty(required=True)
     following = IntegerProperty(required=True)
     verified = BooleanProperty(required=True)
+    joined_date = StringProperty()
+    bio = StringProperty()
+    location = StringProperty()
+    url = StringProperty()
+    birth_date = StringProperty()
     tweets = RelationshipFrom('Tweet', 'POSTED_BY')

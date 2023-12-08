@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     # create users
     for user in users:
-        u = User(id_mongo=user["_id"], username=user["username"], followers=user["followers"], following=user["following"], verified=user["verified"])
+        u = User(id_mongo=user["_id"], username=user["username"], followers=user["followers"], following=user["following"], verified=user["verified"], joined_date=user["joined_date"])
         db_manager.create_node(u)
 
     # create tweets
