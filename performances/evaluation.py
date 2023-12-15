@@ -29,6 +29,9 @@ plt.tight_layout()
 # save the plot
 plt.savefig('performances/complex_queries_performances.png')
 
+# save to csv
+merged_data.to_csv('performances/merged_data.csv', index=False)
+
 # do the same for other queries
 
 # Simple queries data
@@ -58,4 +61,3 @@ plt.tight_layout()
 
 # save the plot
 plt.savefig('performances/other_queries_performances.png')
-
